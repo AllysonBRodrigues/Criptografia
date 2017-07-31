@@ -4,10 +4,6 @@ import android.Manifest
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import java.security.SecureRandom
-import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.spec.SecretKeySpec
 import android.support.v4.app.ActivityCompat
 import android.content.pm.PackageManager
 import java.io.*
@@ -29,14 +25,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
         encrypt.setOnClickListener(this)
         dencrypt.setOnClickListener(this)
         open.setOnClickListener(this)
         val permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
         if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
             ActivityCompat.requestPermissions(
                     this,
                     PERMISSIONS_STORAGE,
@@ -46,90 +40,75 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     }
 
-    @Throws(Exception::class)
-    fun generateKey(password: String): ByteArray {
-        val keyStart = password.toByteArray(charset("UTF-8"))
-
-        val kgen = KeyGenerator.getInstance("AES")
-        val sr = SecureRandom.getInstance("SHA1PRNG", "Crypto")
-        sr.setSeed(keyStart)
-        kgen.init(128, sr)
-        val skey = kgen.generateKey()
-        return skey.getEncoded()
-    }
-
-    @Throws(Exception::class)
-    fun encodeFile(key: ByteArray, fileData: ByteArray?): ByteArray {
-
-        val skeySpec = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance("AES")
-        cipher.init(Cipher.ENCRYPT_MODE, skeySpec)
-
-        val encrypted = cipher.doFinal(fileData)
-
-        return encrypted
-    }
-
-    @Throws(Exception::class)
-    fun decodeFile(key: ByteArray, fileData: ByteArray?): ByteArray? {
-        val skeySpec = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance("AES")
-        cipher.init(Cipher.DECRYPT_MODE, skeySpec)
-
-        val decrypted = cipher.doFinal(fileData)
-
-        return decrypted
-    }
-
     override fun onClick(id: View?) {
         when (id) {
             encrypt -> {
                 val file = File("${Environment.getExternalStorageDirectory().path}/Globo/Teste.pdf")
 
-                if(file.exists()) {
-                    val byteArray = FileInputStream(file)
-                            .readBytes()
+                if (file.exists()) {
+                    try {
                     val bos = BufferedOutputStream(FileOutputStream(file))
-                    val yourKey = generateKey("password")
-                    val filesBytes = encodeFile(yourKey, byteArray)
+                    val key = CryptoHelper.generateKey("password")
+                    val filesBytes = CryptoHelper.encodeFile(key, FileInputStream(file).readBytes())
                     bos.write(filesBytes)
                     bos.flush()
                     bos.close()
+                    }catch (e: Exception){
+                        Toast.makeText(context, "O arquivo já está descriptografado",
+                                Toast.LENGTH_SHORT).show()
+                    }
+                }else{
+                    Toast.makeText(context, "O arquivo não existe",
+                            Toast.LENGTH_SHORT).show()
                 }
             }
 
             dencrypt -> {
 
                 val file = File("${Environment.getExternalStorageDirectory().path}/Globo/Teste.pdf")
-                if(file.exists()) {
-                    val byteArray = FileInputStream(file)
-                            .readBytes()
-                    val yourKey = generateKey("password")
-                    val decodedData = decodeFile(yourKey, byteArray)
-                    val bos = BufferedOutputStream(FileOutputStream(file))
-                    bos.write(decodedData)
-                    bos.flush()
-                    bos.close()
+                if (file.exists()) {
+
+                    try {
+                        val byteArray = FileInputStream(file)
+                                .readBytes()
+                        val key = CryptoHelper.generateKey("password")
+                        val decodedData = CryptoHelper.decodeFile(key, FileInputStream(file).readBytes())
+                        val bos = BufferedOutputStream(FileOutputStream(file))
+                        bos.write(decodedData)
+                        bos.flush()
+                        bos.close()
+                        Toast.makeText(context, "O arquivo foi descriptografado",
+                                Toast.LENGTH_SHORT).show()
+                    }catch (e: Exception){
+                        Toast.makeText(context, "O arquivo já está descriptografado",
+                                Toast.LENGTH_SHORT).show()
+                    }
+                }else{
+                    Toast.makeText(context, "O arquivo não existe",
+                            Toast.LENGTH_SHORT).show()
                 }
             }
 
             open -> {
-                val appFolder = File("${Environment.getExternalStorageDirectory().path}/Globo/Teste.pdf")
-                val path = Uri.fromFile(appFolder)
-                val intent = Intent(Intent.ACTION_VIEW)
-                intent.setDataAndType(path, "application/pdf")
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+                val file = File("${Environment.getExternalStorageDirectory().path}/Globo/Teste.pdf")
+                if (file.exists()) {
+                    val path = Uri.fromFile(file)
+                    val intent = Intent(Intent.ACTION_VIEW)
+                    intent.setDataAndType(path, "application/pdf")
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
 
-                try {
-                    context.startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                    Toast.makeText(context, "Não é possivel abrir o arquivo",
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(context, "Não é possivel abrir o arquivo",
+                                Toast.LENGTH_SHORT).show()
+                    }
+                }else{
+                    Toast.makeText(context, "O arquivo não existe",
                             Toast.LENGTH_SHORT).show()
                 }
             }
 
         }
     }
-
-
 }
