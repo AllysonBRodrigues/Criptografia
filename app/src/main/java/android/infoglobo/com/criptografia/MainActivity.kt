@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         encrypt.setOnClickListener(this)
         dencrypt.setOnClickListener(this)
         open.setOnClickListener(this)
+
         val permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
         if (permission != PackageManager.PERMISSION_GRANTED) {
@@ -43,16 +44,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onClick(id: View?) {
         when (id) {
             encrypt -> {
-                val file = File("${Environment.getExternalStorageDirectory().path}/Globo/Teste.pdf")
+                val file = File("${Environment.getExternalStorageDirectory().path}/Globo/Teste.pdf")//Arquivo a ser criptografado
 
                 if (file.exists()) {
                     try {
-                    val bos = BufferedOutputStream(FileOutputStream(file))
-                    val key = CryptoHelper.generateKey("password")
-                    val filesBytes = CryptoHelper.encodeFile(key, FileInputStream(file).readBytes())
-                    bos.write(filesBytes)
-                    bos.flush()
-                    bos.close()
+                        val bos = BufferedOutputStream(FileOutputStream(file))
+                        //Chamada do método responsavel por criar os arrays de bytes da chave de criptografia
+                        val key = CryptoHelper.generateKey("password")
+                        //Chamada do método responsavel por criptografar o arquivo, passando por paramentro o array de bytes da chave de criptografia
+                        //e o array de bytes do arquivo a ser criptografado
+                        val filesBytes = CryptoHelper.encodeFile(key, FileInputStream(file).readBytes())
+                        bos.write(filesBytes)
+                        bos.flush()
+                        bos.close()
                     }catch (e: Exception){
                         Toast.makeText(context, "O arquivo já está descriptografado",
                                 Toast.LENGTH_SHORT).show()
@@ -69,9 +73,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 if (file.exists()) {
 
                     try {
-                        val byteArray = FileInputStream(file)
-                                .readBytes()
+                        //Chamada do método responsavel por criar os arrays de bytes da chave de criptografia
                         val key = CryptoHelper.generateKey("password")
+                        //Chamada do método responsavel por descriptografar o arquivo, passando por paramentro o array de bytes da chave de criptografia
+                        //e o array de bytes do arquivo a ser descriptografado
                         val decodedData = CryptoHelper.decodeFile(key, FileInputStream(file).readBytes())
                         val bos = BufferedOutputStream(FileOutputStream(file))
                         bos.write(decodedData)
